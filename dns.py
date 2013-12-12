@@ -99,11 +99,11 @@ class initialize():
 	# Check if there were any changes between latest update and baseline		
 		self.sql_conn()
 		self.cur = self.conn.cursor()
-		self.cur.execute("select qname, qtype, dst_ns, an_rdata, an_type from baseline")
+		self.cur.execute("select qname, qtype, dst_ns, an_rdata, an_type from latest_update")
 		# use cursor as iterator
 		for self.row in self.cur:
 			self.qname, self.qtype, self.dst_ns, self.an_rdata, self.an_type = self.row
-			self.cur.execute("select * from latest_update where qname=%s and qtype=%s and dst_ns=%s and an_rdata=%s and an_type=%s", self.row)
+			self.cur.execute("select * from baseline where qname=%s and qtype=%s and dst_ns=%s and an_rdata=%s and an_type=%s", self.row)
 			# if rows are returned from the above query then the eact values from baseline were found in latest_update
 			# if not then some DNS entry has changed
 			if self.cur.fetchone() == None:
@@ -112,6 +112,8 @@ class initialize():
 				print "[*] Descripency QUERY TYPE: %s" % self.row[1]
 				print "[*] Descripency Name Server: %s" % self.row[2]
 				print "[*] Descripency Answer: %s" % self.row[3]
+				self.cur.execute("insert into descrepencies(qname, qtype, dst_ns, an_rdata, an_type) values (%s,%s,%s,%s,%s)", self.row)
+				self.conn.commit()
 			else:
 				print "[*] Everything is dandy"
 
