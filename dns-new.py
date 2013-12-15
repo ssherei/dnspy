@@ -29,41 +29,69 @@ class initialize():
 	# if baseline argument is set set table_name to 'baseline' else set table_name to 'latest_update'
 		if b:
 			self.table = 'baseline'
-		else:
-			self.table = 'latest_update'
 	# set cursor we get the cursor object. The cursor is used to traverse the records from the result set.
-		self.cur = self.conn.cursor()
+			self.cur = self.conn.cursor()
 		
 	# we use %%s in table_name so MySQLdb doesn't insert quotes in table_name %% will let python skip the other variables from the first python format string
 	# we check to see if there is a record for same server exist cursor.fetchone() returns None if no data is retrieved "data with same domain, name server, query Type"
 	
-		self.cur.execute("select * from %s where qname=(select id from watched where domain=%%s)" % self.table, (self.ans.args['name']))
-		if self.cur.fetchone() == None:
-			print "[*] New Entry"
-			self.cur.execute("insert into %s(qname) values ((select id from watched where domain=%%s))" % self.table, (self.ans.args['name']))
+			self.cur.execute("select * from %s where qname=(select id from watched where domain=%%s) and dst_ns=%%s" % self.table, (self.ans.args['name'], self.ans.args['server']))
+			if self.cur.fetchone() == None:
+				print "[*] New Entry"
+				self.cur.execute("insert into %s(qname,dst_ns) values ((select id from watched where domain=%%s), %%s)" % self.table, (self.ans.args['name'],self.ans.args['server']))
 	
-		else:
 			print "[*] Added new Name Server"
-			self.cur.execute("update %s set dst_ns = concat_ws(',',dst_ns,%%s), time_stamp = NOW()" % self.table, (self.ans.args['server']))
-		self.conn.commit()
-		for self.a in self.ans.answers:
-			if self.a['typename'] == 'A':
-				print "[*] Updating 'A' record in table: %s" % self.table
-				self.cur.execute("update %s set A=case when A is null then %%s else concat_ws(',',A,%%s) end , time_stamp=now() where qname=(select id from watched where domain=%%s) and dst_ns=%%s" % self.table, (self.a['data'],self.a['data'],self.ans.args['name'],self.ans.args['server']))
+			#self.cur.execute("update %s set dst_ns = case when dst_ns is null then %%s else concat_ws(',',dst_ns,%%s) end, time_stamp = NOW()" % self.table, (self.ans.args['server'], self.ans.args['server']))
+			self.conn.commit()
+			for self.a in self.ans.answers:
+				if self.a['typename'] == 'A':
+					print "[*] Updating 'A' record in table: %s" % self.table
+					self.cur.execute("update %s set A=case when A is null then %%s else concat_ws(',',A,%%s) end , time_stamp=now() where qname=(select id from watched where domain=%%s) and dst_ns=%%s" % self.table, (self.a['data'],self.a['data'],self.ans.args['name'], self.ans.args['server']))
 
-			elif self.a['typename'] == 'NS':
-                        	print "[*] Updating 'NS' record in table: %s" % self.table
-                        	self.cur.execute("update %s set NS=case when NS is null then %%s else concat_ws(',',NS,%%s) end , time_stamp=now() where qname=(select id from watched where domain=%%s) and dst_ns=%%s" % self.table, (self.a['data'],self.a['data'],self.ans.args['name'],self.ans.args['server']))
+				elif self.a['typename'] == 'NS':
+                	        	print "[*] Updating 'NS' record in table: %s" % self.table
+                	        	self.cur.execute("update %s set NS=case when NS is null then %%s else concat_ws(',',NS,%%s) end , time_stamp=now() where qname=(select id from watched where domain=%%s) and dst_ns=%%s" % self.table, (self.a['data'],self.a['data'],self.ans.args['name'],self.ans.args['server']))
 
-			elif self.a['typename'] == 'MX':
-                        	print "[*] Updating 'MX' record in table: %s" % self.table
-                        	self.cur.execute("update %s set MX=case when MX is null then %%s else concat(',',A,%%s) end , time_stamp=now() where qname=(select id from watched where domain=%%s) and dst_ns=%%s" % self.table, (self.a['data'][1],self.a['data'][1],self.ans.args['name'],self.ans.args['server']))
+				elif self.a['typename'] == 'MX':
+                        		print "[*] Updating 'MX' record in table: %s" % self.table
+                        		self.cur.execute("update %s set MX=case when MX is null then %%s else concat(',',A,%%s) end , time_stamp=now() where qname=(select id from watched where domain=%%s) and dst_ns=%%s" % self.table, (self.a['data'][1],self.a['data'][1],self.ans.args['name'],self.ans.args['server']))
 				
-			else: 
-				continue
+				else: 
+					continue
 
 		# Commit changes to database
+				self.conn.commit()
+		else:
+			self.table = 'latest_update'
+			self.cur = self.conn.cursor()
+		
+	# we use %%s in table_name so MySQLdb doesn't insert quotes in table_name %% will let python skip the other variables from the first python format string
+	# we check to see if there is a record for same server exist cursor.fetchone() returns None if no data is retrieved "data with same domain, name server, query Type"
+	
+			self.cur.execute("insert into %s(qname,dst_ns) values ((select id from watched where domain=%%s), %%s)" % self.table, (self.ans.args['name'],self.ans.args['server']))
+			self.cur.execute("select time_stamp from %s where qname=(select id from watched where domain=%%s) and dst_ns=%%s" % self.table, (self.ans.args['name'], self.ans.args['server']))
+			self.ts = self.cur.fetchone()
 			self.conn.commit()
+			for self.a in self.ans.answers:
+				if self.a['typename'] == 'A':
+					print "[*] Updating 'A' record in table: %s" % self.table
+					self.cur.execute("update %s set A=case when A is null then %%s else concat_ws(',',A,%%s) end , time_stamp=now() where qname=(select id from watched where domain=%%s) and dst_ns=%%s" % self.table, (self.a['data'],self.a['data'],self.ans.args['name'], self.ans.args['server']))
+
+				elif self.a['typename'] == 'NS':
+                	        	print "[*] Updating 'NS' record in table: %s" % self.table
+                	        	self.cur.execute("update %s set NS=case when NS is null then %%s else concat_ws(',',NS,%%s) end , time_stamp=now() where qname=(select id from watched where domain=%%s) and dst_ns=%%s" % self.table, (self.a['data'],self.a['data'],self.ans.args['name'],self.ans.args['server']))
+
+				elif self.a['typename'] == 'MX':
+                        		print "[*] Updating 'MX' record in table: %s" % self.table
+                        		self.cur.execute("update %s set MX=case when MX is null then %%s else concat(',',A,%%s) end , time_stamp=now() where qname=(select id from watched where domain=%%s) and dst_ns=%%s" % self.table, (self.a['data'][1],self.a['data'][1],self.ans.args['name'],self.ans.args['server']))
+				
+				else: 
+					continue
+
+		# Commit changes to database
+				self.conn.commit()
+			self.table = 'latest_update'
+
 
 	def send_pkt(self,q1):
 		
