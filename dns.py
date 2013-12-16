@@ -33,7 +33,6 @@ class initialize():
 			self.table = 'latest_update'
 	# set cursor we get the cursor object. The cursor is used to traverse the records from the result set.
 		self.cur = self.conn.cursor()
-	#	print self.ans.answers	
 		for self.a in self.ans.answers:
 			if self.a['typename'] in ['A','NS']:
 				#print "Debug"
