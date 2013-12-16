@@ -37,10 +37,10 @@ class initialize():
 	
 			self.cur.execute("select * from %s where qname=(select id from watched where domain=%%s) and dst_ns=%%s" % self.table, (self.ans.args['name'], self.ans.args['server']))
 			if self.cur.fetchone() == None:
-				print "[*] New Entry"
+				print "\r\n[*] New Entry\r\n"
 				self.cur.execute("insert into %s(qname,dst_ns) values ((select id from watched where domain=%%s), %%s)" % self.table, (self.ans.args['name'],self.ans.args['server']))
 	
-			print "[*] Added new Name Server"
+			print "\r\n[*] Added new Name Server\r\n"
 			#self.cur.execute("update %s set dst_ns = case when dst_ns is null then %%s else concat_ws(',',dst_ns,%%s) end, time_stamp = NOW()" % self.table, (self.ans.args['server'], self.ans.args['server']))
 			self.conn.commit()
 			for self.a in self.ans.answers:
@@ -77,35 +77,34 @@ class initialize():
 	
 			self.cur.execute("insert into %s(qname,dst_ns) values ((select id from watched where domain=%%s), %%s)" % self.table, (self.ans.args['name'],self.ans.args['server']))
 			self.conn.commit()
-			self.cur.execute("select NOW()")
-			self.ts = self.cur.fetchone()
-			print self.ts[0]
+			#print self.ts[0]
 			for self.a in self.ans.answers:
+				self.cur.execute("select MAX(time_stamp) from %s where qname=(select id from watched where domain=%%s) and dst_ns=%%s" % self.table, (self.ans.args['name'],self.ans.args['server']))
+				self.ts = self.cur.fetchone()
 				if self.a['typename'] == 'A':
 					print "[*] Updating 'A' record in table: %s" % self.table
-					self.cur.execute("update %s set A=case when A is null then %%s else concat_ws(',',A,%%s) end , time_stamp=now() where qname=(select id from watched where domain=%%s) and dst_ns=%%s and time_stamp >= %%s" % self.table, (self.a['data'],self.a['data'],self.ans.args['name'], self.ans.args['server'],self.ts[0]))
+					self.cur.execute("update %s set A=case when A is null then %%s else concat_ws(',',A,%%s) end where qname=(select id from watched where domain=%%s) and dst_ns=%%s and time_stamp =%%s" % self.table, (self.a['data'],self.a['data'],self.ans.args['name'], self.ans.args['server'],self.ts[0]))
 
 				elif self.a['typename'] == 'NS':
                 	        	print "[*] Updating 'NS' record in table: %s" % self.table
-                	        	self.cur.execute("update %s set NS=case when NS is null then %%s else concat_ws(',',NS,%%s) end , time_stamp=now() where qname=(select id from watched where domain=%%s) and dst_ns=%%s and time_stamp >= %%s" % self.table, (self.a['data'],self.a['data'],self.ans.args['name'],self.ans.args['server'],self.ts[0]))
+                	        	self.cur.execute("update %s set NS=case when NS is null then %%s else concat_ws(',',NS,%%s) end where qname=(select id from watched where domain=%%s) and dst_ns=%%s and time_stamp = %%s" % self.table, (self.a['data'],self.a['data'],self.ans.args['name'],self.ans.args['server'],self.ts[0]))
 
 				elif self.a['typename'] == 'MX':
                         		print "[*] Updating 'MX' record in table: %s" % self.table
-                        		self.cur.execute("update %s set MX=case when MX is null then %%s else concat(',',A,%%s) end , time_stamp=now() where qname=(select id from watched where domain=%%s) and dst_ns=%%s and time_stamp>=%%s" % self.table, (self.a['data'][1],self.a['data'][1],self.ans.args['name'],self.ans.args['server'],self.ts[0]))
+                        		self.cur.execute("update %s set MX=case when MX is null then %%s else concat(',',A,%%s) end where qname=(select id from watched where domain=%%s) and dst_ns=%%s and time_stamp=%%s" % self.table, (self.a['data'][1],self.a['data'][1],self.ans.args['name'],self.ans.args['server'],self.ts[0]))
 				
 				elif self.a['typename'] == 'TXT':
                                         print "[*] Updating 'TXT' record in table: %s" % self.table
-                                        self.cur.execute("update %s set TXT=case when TXT is null then %%s when TXT like %%s then %%s else concat_ws(',',TXT,%%s) end , time_stamp=now() where qname=(select id from watched where domain=%%s) and dst_ns=%%s" % self.table, (str(self.a['data']),str(self.a['data']),str(self.a['data']),str(self.a['data']),self.ans.args['name'], self.ans.args['server']))				
+                                        self.cur.execute("update %s set TXT=case when TXT is null then %%s when TXT like %%s then %%s else concat_ws(',',TXT,%%s) end where qname=(select id from watched where domain=%%s) and dst_ns=%%s and time_stamp=%%s" % self.table, (str(self.a['data']),str(self.a['data']),str(self.a['data']),str(self.a['data']),self.ans.args['name'], self.ans.args['server'],self.ts[0]))				
 				elif self.a['typename'] == 'SOA':
                                         print "[*] Updating 'SOA' record in table: %s" % self.table
-                                        self.cur.execute("update %s set SOA=case  when SOA is null then %%s when SOA like %%s then %%s else concat_ws(',',SOA,%%s) end , time_stamp=now() where qname=(select id from watched where domain=%%s) and dst_ns=%%s" % self.table, (str(self.a['data']),"%"+str(self.a['data'])+"%",str(self.a['data']),str(self.a['data']),self.ans.args['name'], self.ans.args['server']))
-
+                                        self.cur.execute("update %s set SOA=case  when SOA is null then %%s when SOA like %%s then %%s else concat_ws(',',SOA,%%s) end  where qname=(select id from watched where domain=%%s) and dst_ns=%%s and time_stamp=%%s" % self.table, (str(self.a['data']),"%"+str(self.a['data'])+"%",str(self.a['data']),str(self.a['data']),self.ans.args['name'], self.ans.args['server'],self.ts[0]))
+				
 				else: 
 					continue
 
 		# Commit changes to database
 				self.conn.commit()
-
 
 	def send_pkt(self,q1):
 		
@@ -120,11 +119,11 @@ class initialize():
                 self.cur.execute("select domain from watched")
 		# use cursor object as row iterator
 		for self.query in self.cur:
-			print "[*] Domain:%s" % self.query[0]
+			print "[*] Domain:%s\r\n" % self.query[0]
               		for self.ns in self.nameserver:
 			# set packet destination to name server to query
         	        	self.req = DNS.DnsRequest(name = self.query[0], qtype = 'ANY', server = self.ns)
-				print "[*] Query: %s" % self.req.args
+				print "[*] Query: %s\r\n" % self.req.args
         	                self.ans = self.send_pkt(self.req)
 				if b:
 					self.sql_populate(b)
@@ -141,10 +140,19 @@ class initialize():
 		self.cur = self.conn.cursor()
 		self.cur.execute("insert into watched (domain) values (%s)",self.domain)
 		self.conn.commit()
-		print "[*] Adding domain %s to table" % self.domain
+		print "[*] Adding domain %s to table\r\n" % self.domain
 		self.cur.close()
 		self.conn.close()
 	
+	def reccmp(self,rec1,rec2):
+		
+		self.rec1 = rec1.split(",")
+		self.rec2 = rec2.split(",")
+		for self.rec in self.rec2:
+			if self.rec not in self.rec1:
+				print "---------Differnet Entry: %s------Domain: %s-------Name Server: %s" % (self.rec, str(self.qname), self.dst_ns)
+				return False
+		return True
 	def checking(self):
 	# Check if there were any changes between latest update and baseline		
 		self.sql_conn()
@@ -155,15 +163,50 @@ class initialize():
 		# use cursor as iterator
 		for self.row in self.cur:
 			self.qname, self.A, self.NS, self.MX, self.TXT, self.SOA, self.dst_ns = self.row
-			self.bl_q = list(self.row)
-			print self.bl_q
-			self.bl_q = [self.i for self.col in self.row if type(self.col) is str for self.i in self.col.split(",")]
-			print self.bl_q
-			#self.cur.execute("select qname, A, NS, MX, TXT, SOA, dst_ns from latest_update where qname=%%s and dst_ns =%%s", (self.qname, self.dst_ns)
-			#self.bl_query = self.cur.fetchone()
-			
-			# if rows are returned from the above query then the eact values from baseline were found in latest_update
-			# if not then some DNS entry has changed
+			self.cur.execute("select max(time_stamp) from latest_update where qname=%s and dst_ns=%s", (self.qname,self.dst_ns))
+			self.tsc = self.cur.fetchone()
+        	        self.cur.execute("select qname, A, NS, MX, TXT, SOA, dst_ns from latest_update where qname=%s and dst_ns=%s and time_stamp=%s", (self.qname,self.dst_ns,self.tsc[0]))
+			for self.row_latest in self.cur:
+				self.qname_latest, self.A_latest, self.NS_latest, self.MX_latest, self.TXT_latest, self.SOA_latest, self.dst_ns_latest = self.row_latest		
+		
+				if self.reccmp(self.A,self.A_latest) and\
+				   self.reccmp(self.NS,self.NS_latest) and\
+				   self.reccmp(self.MX, self.MX_latest) and\
+				   self.reccmp(self.TXT,self.TXT_latest) and\
+				   self.reccmp(self.SOA,self.SOA_latest): 				
+
+					print "--------Domain: %s----------NameServer: %s----------\r\n" % (self.qname_latest, self.NS_latest)
+					print "[*] Server Address is in baseline: %s" % self.A_latest
+					print "[*] Name Servers Match Baseline: %s" % self.NS_latest
+					print "[*] MX Records Match Baseline: %s" % self.MX_latest
+					print "[*] TXT Records Match Baseline: %s" % self.TXT_latest
+					print "[*] SOA Record Match Baseline: %s" % self.SOA_latest
+					print "[*] Time Stamp: %s\r\n\r\n" % str(self.tsc[0])
+				else:
+					print """
+EEEEEEEEEEEEEEEEEEEEEE                                                                             
+E::::::::::::::::::::E                                                                             
+E::::::::::::::::::::E                                                                             
+EE::::::EEEEEEEEE::::E                                                                             
+  E:::::E       EEEEEErrrrr   rrrrrrrrr   rrrrr   rrrrrrrrr      ooooooooooo   rrrrr   rrrrrrrrr   
+  E:::::E             r::::rrr:::::::::r  r::::rrr:::::::::r   oo:::::::::::oo r::::rrr:::::::::r  
+  E::::::EEEEEEEEEE   r:::::::::::::::::r r:::::::::::::::::r o:::::::::::::::or:::::::::::::::::r 
+  E:::::::::::::::E   rr::::::rrrrr::::::rrr::::::rrrrr::::::ro:::::ooooo:::::orr::::::rrrrr::::::r
+  E:::::::::::::::E    r:::::r     r:::::r r:::::r     r:::::ro::::o     o::::o r:::::r     r:::::r
+  E::::::EEEEEEEEEE    r:::::r     rrrrrrr r:::::r     rrrrrrro::::o     o::::o r:::::r     rrrrrrr
+  E:::::E              r:::::r             r:::::r            o::::o     o::::o r:::::r            
+  E:::::E       EEEEEE r:::::r             r:::::r            o::::o     o::::o r:::::r            
+EE::::::EEEEEEEE:::::E r:::::r             r:::::r            o:::::ooooo:::::o r:::::r            
+E::::::::::::::::::::E r:::::r             r:::::r            o:::::::::::::::o r:::::r            
+E::::::::::::::::::::E r:::::r             r:::::r             oo:::::::::::oo  r:::::r            
+EEEEEEEEEEEEEEEEEEEEEE rrrrrrr             rrrrrrr               ooooooooooo    rrrrrrr     \r\n\r\n\r\n"""
+					print "[*] Error Matching Record to Baseline"
+					print "[*] Latest Record: A %s Baseline: A %s" % (str(self.A_latest), str(self.A))
+					print "[*] Latest Record: NS %s Baseline: NS %s" % (str(self.NS_latest), str(self.NS))
+					print "[*] Latest Record: MX %s Baseline: MX %s" % (str(self.MX_latest), str(self.MX))
+					print "[*] Latest Record: TXT %s Baseline: TXT %s" % (str(self.TXT_latest), str(self.TXT))
+					print "[*] Latest Record: SOA %s baseline: SOA %s" % (str(self.SOA_latest), str(self.SOA))
+					print "[*] Time_stamp: %s\r\n\r\n" % str(self.tsc[0])
 
 		self.conn.close()
 		self.cur.close()
