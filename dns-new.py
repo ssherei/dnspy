@@ -13,7 +13,6 @@ class initialize():
 		self.db_user = 'dnsservice'			#db username
 		self.db_pass = 'dnsservice'			#db password
 		self.db = 'dnsservice'					#db 					
-                #self.nameserver = ['8.8.4.4','8.8.8.8']	# name servers to query
                 pass
 
 	def sql_conn(self):
@@ -143,7 +142,17 @@ class initialize():
 		print "[*] Adding domain %s to table\r\n" % self.domain
 		self.cur.close()
 		self.conn.close()
-	
+
+	def add_name_server(self,nameserver):
+		self.nameserver = nameserver
+		self.sql_conn()
+		self.cur = self.conn.cursor()
+		self.cur.execute("insert into name_servers (name_server) values (%s)",self.nameserver)
+		self.conn.commit()
+		print "[*] Adding Name Server %s to table\r\n" % self.nameserver
+		self.cur.close()
+		self.conn.close()
+
 	def reccmp(self,rec1,rec2):
 		
 		self.rec1 = rec1.split(",")
@@ -216,21 +225,26 @@ r = initialize()
 parser = argparse.ArgumentParser(description = 'DNS records Check', epilog = 'Saif El-Sherei')
 parser.add_argument('-b','--baseline',help = 'Add result to database baseline',action='store_true')
 parser.add_argument('-d','--domain', help = ' Add domain to domains table')
+parser.add_argument('-n','--ns', help = ' Add Name Server to table')
 parser.add_argument('-c','--check',help = 'Check for any discrepancies in databse',action='store_true')
 p = parser.parse_args()
 
-if not p.baseline and not p.domain and not p.check:
+if not p.baseline and not p.domain and not p.check and not p.ns:
 	
 	r.packet_magic()
 
-if p.baseline and not p.domain and not p.check:
+if p.baseline and not p.domain and not p.check and not p.ns:
 
 	r.packet_magic(p.baseline)
 
-if p.domain and not p.baseline:
+if p.domain and not p.baseline and not p.check and not p.ns:
 	
 	r.add_domain(p.domain)
 
-if p.check and not p.baseline and not p.domain:
+if p.ns and not p.baseline and not p.check and not p.domain:
+
+	r.add_name_server(p.ns)
+
+if p.check and not p.baseline and not p.domain and not p.ns:
 	
 	r.checking()
