@@ -23,6 +23,9 @@ try:
 		cur.execute("drop table if exists latest_update")
 		cur.execute("create table latest_update(id int primary key auto_increment,  qname int, A varchar(100), NS varchar(300), MX varchar(300), TXT varchar(300), SOA varchar(300), dst_ns int,time_stamp timestamp, constraint fk_qname_latest foreign key (qname) references watched(id) on update cascade on delete cascade, constraint fk_dst_ns_latest foreign key (dst_ns) references name_servers(id) on update cascade on delete cascade)")
 
+		print "[*] Creating Table emails"
+		cur.execute("drop table if exists emails")
+		cur.execute("create table emails(id int primary key auto_increment, email varchar(100)")
 
 
 	#	print "[*] Creating Table descrepencies

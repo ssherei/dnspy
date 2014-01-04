@@ -5,6 +5,9 @@ import sys
 import os
 import MySQLdb as mysql
 import argparse
+import smtplib
+import email.utils
+from email.mime.text import MIMEText
 
 class initialize():
         def __init__(self):
@@ -152,16 +155,51 @@ class initialize():
 		print "[*] Adding Name Server %s to table\r\n" % self.nameserver
 		self.cur.close()
 		self.conn.close()
-
-	def reccmp(self,rec1,rec2):
 		
-		self.rec1 = rec1.split(",")
-		self.rec2 = rec2.split(",")
+	def add_email(self,email):
+
+		self.email = email
+		self.sql_conn()
+		self.cur = self.conn.cursor()
+		self.cur.execute("insert into emails (email) values (%s)", self.email)
+		self.conn.commit()
+		print "[*] Adding Email %s to table\r\n" % self.email
+		self.cur.close()
+		self.conn.close()
+
+	def reccmp(self,rec1=None,rec2=None):
+		
+		self.rec1 = rec1
+		self.rec2 = rec2
+		if self.rec1:
+			self.rec1 = self.rec1.split(",")
+		if self.rec2:
+			self.rec2 = self.rec2.split(",")
+		elif not self.rec1 and not self.rec2:
+			return True
 		for self.rec in self.rec2:
 			if self.rec not in self.rec1:
-				print "---------Differnet Entry: %s------Domain: %s-------Name Server: %s" % (self.rec, str(self.qname), self.dst_ns)
 				return False
 		return True
+		
+	def send_email(self,msg):
+		
+		self.msg = MIMEText(msg)
+		self.sql_conn()
+		self.cur = self.conn.cursor()
+		self.to = []
+		self.cur.execute("select email from emails")
+		self.emails = self.cur.fetchall()
+		for self.mail in self.emails:
+			self.to.append(self.mail[0])
+		self.from_email = 'dns-mon@alert-moi.com' 
+		self.msg['subject'] = 'ISC DNS monitor Alert' 
+		self.server = smtplib.SMTP('localhost',25)
+		#self.server.set_debuglevel(True)
+		self.server.starttls()
+		self.server.sendmail(self.from_email,self.to,self.msg.as_string())
+		self.server.quit()
+
 	def checking(self):
 	# Check if there were any changes between latest update and baseline		
 		self.sql_conn()
@@ -192,30 +230,18 @@ class initialize():
 					print "[*] SOA Record Match Baseline: %s" % self.SOA_latest
 					print "[*] Time Stamp: %s\r\n\r\n" % str(self.tsc[0])
 				else:
-					print """
-EEEEEEEEEEEEEEEEEEEEEE                                                                             
-E::::::::::::::::::::E                                                                             
-E::::::::::::::::::::E                                                                             
-EE::::::EEEEEEEEE::::E                                                                             
-  E:::::E       EEEEEErrrrr   rrrrrrrrr   rrrrr   rrrrrrrrr      ooooooooooo   rrrrr   rrrrrrrrr   
-  E:::::E             r::::rrr:::::::::r  r::::rrr:::::::::r   oo:::::::::::oo r::::rrr:::::::::r  
-  E::::::EEEEEEEEEE   r:::::::::::::::::r r:::::::::::::::::r o:::::::::::::::or:::::::::::::::::r 
-  E:::::::::::::::E   rr::::::rrrrr::::::rrr::::::rrrrr::::::ro:::::ooooo:::::orr::::::rrrrr::::::r
-  E:::::::::::::::E    r:::::r     r:::::r r:::::r     r:::::ro::::o     o::::o r:::::r     r:::::r
-  E::::::EEEEEEEEEE    r:::::r     rrrrrrr r:::::r     rrrrrrro::::o     o::::o r:::::r     rrrrrrr
-  E:::::E              r:::::r             r:::::r            o::::o     o::::o r:::::r            
-  E:::::E       EEEEEE r:::::r             r:::::r            o::::o     o::::o r:::::r            
-EE::::::EEEEEEEE:::::E r:::::r             r:::::r            o:::::ooooo:::::o r:::::r            
-E::::::::::::::::::::E r:::::r             r:::::r            o:::::::::::::::o r:::::r            
-E::::::::::::::::::::E r:::::r             r:::::r             oo:::::::::::oo  r:::::r            
-EEEEEEEEEEEEEEEEEEEEEE rrrrrrr             rrrrrrr               ooooooooooo    rrrrrrr     \r\n\r\n\r\n"""
-					print "[*] Error Matching Record to Baseline"
-					print "[*] Latest Record: A %s Baseline: A %s" % (str(self.A_latest), str(self.A))
-					print "[*] Latest Record: NS %s Baseline: NS %s" % (str(self.NS_latest), str(self.NS))
-					print "[*] Latest Record: MX %s Baseline: MX %s" % (str(self.MX_latest), str(self.MX))
-					print "[*] Latest Record: TXT %s Baseline: TXT %s" % (str(self.TXT_latest), str(self.TXT))
-					print "[*] Latest Record: SOA %s baseline: SOA %s" % (str(self.SOA_latest), str(self.SOA))
-					print "[*] Time_stamp: %s\r\n\r\n" % str(self.tsc[0])
+						
+					self.msg = """
+---------Differnet Entry: %s------Domain: %s-------Name Server: %s 
+[*] Error Matching Record to Baseline
+[*] Latest Record: A %s Baseline: A %s
+[*] Latest Record: NS %s Baseline: NS %s
+[*] Latest Record: MX %s Baseline: MX %s
+[*] Latest Record: TXT %s Baseline: TXT %s
+[*] Latest Record: SOA %s baseline: SOA %s
+[*] Time_stamp: %s\r\n\r\n """ % (self.rec, str(self.qname), self.dst_ns, str(self.A_latest), str(self.A), str(self.NS_latest), str(self.NS), str(self.MX_latest), str(self.MX), str(self.TXT_latest), str(self.TXT), str(self.SOA_latest), str(self.SOA), str(self.tsc[0]))
+					self.send_email(self.msg)
+					print self.msg
 
 		self.conn.close()
 		self.cur.close()
@@ -227,24 +253,30 @@ parser.add_argument('-b','--baseline',help = 'Add result to database baseline',a
 parser.add_argument('-d','--domain', help = ' Add domain to domains table')
 parser.add_argument('-n','--ns', help = ' Add Name Server to table')
 parser.add_argument('-c','--check',help = 'Check for any discrepancies in databse',action='store_true')
+parser.add_argument('-e','--email',help = 'Add Email to table')
 p = parser.parse_args()
 
-if not p.baseline and not p.domain and not p.check and not p.ns:
+if not p.baseline and not p.domain and not p.check and not p.ns and not p.email:
 	
 	r.packet_magic()
+	r.checking()
 
-if p.baseline and not p.domain and not p.check and not p.ns:
+if p.baseline and not p.domain and not p.check and not p.ns and not p.email:
 
 	r.packet_magic(p.baseline)
 
-if p.domain and not p.baseline and not p.check and not p.ns:
+if p.domain and not p.baseline and not p.check and not p.ns and not p.email:
 	
 	r.add_domain(p.domain)
 
-if p.ns and not p.baseline and not p.check and not p.domain:
+if p.ns and not p.baseline and not p.check and not p.domain and not p.email:
 
 	r.add_name_server(p.ns)
 
-if p.check and not p.baseline and not p.domain and not p.ns:
+if p.check and not p.baseline and not p.domain and not p.ns and not p.email:
 	
 	r.checking()
+
+if p.email and not p.baseline and not p.check and not p.domain and not p.ns:
+	
+	r.add_email(p.email)
