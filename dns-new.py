@@ -11,12 +11,13 @@ from email.mime.text import MIMEText
 
 class initialize():
         def __init__(self):
-	
+		
 		self.db_host = 'localhost'			#db host
 		self.db_user = 'dnsservice'			#db username
 		self.db_pass = 'dnsservice'			#db password
 		self.db = 'dnsservice'					#db 					
-                pass
+                sys.stdout = open('/var/log/dns-mon.log','w')
+		pass
 
 	def sql_conn(self):
 
