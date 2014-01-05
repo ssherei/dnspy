@@ -16,7 +16,7 @@ class initialize():
 		self.db_user = 'dnsservice'			#db username
 		self.db_pass = 'dnsservice'			#db password
 		self.db = 'dnsservice'					#db 					
-#                sys.stdout = hy1pen('/var/log/dns-mon.log','a')
+                sys.stdout = hy1pen('/var/log/dns-mon.log','a')
 		pass
 
 	def sql_conn(self):
