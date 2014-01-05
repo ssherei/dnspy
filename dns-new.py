@@ -16,7 +16,7 @@ class initialize():
 		self.db_user = 'dnsservice'			#db username
 		self.db_pass = 'dnsservice'			#db password
 		self.db = 'dnsservice'					#db 					
-                sys.stdout = open('/var/log/dns-mon.log','w')
+#                sys.stdout = hy1pen('/var/log/dns-mon.log','a')
 		pass
 
 	def sql_conn(self):
@@ -92,7 +92,7 @@ class initialize():
 
 				elif self.a['typename'] == 'MX':
                         		print "[*] Updating 'MX' record in table: %s" % self.table
-                        		self.cur.execute("update %s set MX=case when MX is null then %%s else concat(',',A,%%s) end where qname=(select id from watched where domain=%%s) and dst_ns=(select id from name_servers where name_server=%%s) and time_stamp=%%s" % self.table, (self.a['data'][1],self.a['data'][1],self.ans.args['name'],self.ans.args['server'],self.ts[0]))
+                        		self.cur.execute("update %s set MX=case when MX is null then %%s else concat_ws(',',MX,%%s) end where qname=(select id from watched where domain=%%s) and dst_ns=(select id from name_servers where name_server=%%s) and time_stamp=%%s" % self.table, (self.a['data'][1],self.a['data'][1],self.ans.args['name'],self.ans.args['server'],self.ts[0]))
 				
 				elif self.a['typename'] == 'TXT':
                                         print "[*] Updating 'TXT' record in table: %s" % self.table
@@ -178,6 +178,10 @@ class initialize():
 			self.rec2 = self.rec2.split(",")
 		elif not self.rec1 and not self.rec2:
 			return True
+		elif not self.rec1 and self.rec2:
+			return False
+		elif not self.rec2 and self.rec1:
+			return False
 		for self.rec in self.rec2:
 			if self.rec not in self.rec1:
 				return False
