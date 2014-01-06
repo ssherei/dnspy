@@ -18,7 +18,7 @@ class initialize():
 		self.db_user = 'dnsservice'			#db username
 		self.db_pass = 'dnsservice'			#db password
 		self.db = 'dnsservice'					#db 					
-                #sys.stdout = open('/var/log/dns-mon.log','a')
+                sys.stdout = open('/var/log/dns-mon.log','a')
 		pass
 
 	def sql_conn(self):
@@ -254,7 +254,7 @@ class initialize():
 [*] Latest Record: SOA %s baseline: SOA %s
 [*] Time_stamp: %s\r\n\r\n """ % (self.rec, str(self.qname), self.dst_ns, str(self.A_latest), str(self.A), str(self.NS_latest), str(self.NS), str(self.MX_latest), str(self.MX), str(self.TXT_latest), str(self.TXT), str(self.SOA_latest), str(self.SOA), str(self.tsc[0]))
 				print self.msg
-			#	self.send_email(self.msg)
+				self.send_email(self.msg)
 
 		self.conn.close()
 		self.cur.close()
