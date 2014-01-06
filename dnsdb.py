@@ -17,11 +17,11 @@ try:
 		
 		print "[*] Creating Table Baseline"
 		cur.execute("drop table if exists baseline")
-		cur.execute("create table baseline(id int primary key auto_increment,  qname int, A varchar(100), NS varchar(300), MX varchar(300), TXT varchar(1024), SOA varchar(300), dst_ns int,time_stamp timestamp, constraint fk_qname foreign key (qname) references watched(id) on update cascade on delete cascade, constraint fk_dst_ns foreign key (dst_ns) references name_servers(id) on update cascade on delete cascade)")
+		cur.execute("create table baseline(id int primary key auto_increment,  qname int, A varchar(100), NS varchar(300), MX varchar(300), TXT varchar(1024), SOA varchar(2048), dst_ns int,time_stamp timestamp, constraint fk_qname foreign key (qname) references watched(id) on update cascade on delete cascade, constraint fk_dst_ns foreign key (dst_ns) references name_servers(id) on update cascade on delete cascade)")
 
 		print "[*] Creating Table latest_update"
 		cur.execute("drop table if exists latest_update")
-		cur.execute("create table latest_update(id int primary key auto_increment,  qname int, A varchar(100), NS varchar(300), MX varchar(300), TXT varchar(1024), SOA varchar(300), dst_ns int,time_stamp timestamp, constraint fk_qname_latest foreign key (qname) references watched(id) on update cascade on delete cascade, constraint fk_dst_ns_latest foreign key (dst_ns) references name_servers(id) on update cascade on delete cascade)")
+		cur.execute("create table latest_update(id int primary key auto_increment,  qname int, A varchar(100), NS varchar(300), MX varchar(300), TXT varchar(1024), SOA varchar(2048), dst_ns int,time_stamp timestamp, constraint fk_qname_latest foreign key (qname) references watched(id) on update cascade on delete cascade, constraint fk_dst_ns_latest foreign key (dst_ns) references name_servers(id) on update cascade on delete cascade)")
 
 		print "[*] Creating Table emails"
 		cur.execute("drop table if exists emails")

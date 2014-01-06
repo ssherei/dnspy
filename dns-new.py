@@ -18,7 +18,7 @@ class initialize():
 		self.db_user = 'dnsservice'			#db username
 		self.db_pass = 'dnsservice'			#db password
 		self.db = 'dnsservice'					#db 					
-                sys.stdout = open('/var/log/dns-mon.log','a')
+                #sys.stdout = open('/var/log/dns-mon.log','a')
 		pass
 
 	def sql_conn(self):
@@ -178,15 +178,16 @@ class initialize():
 		
 		self.rec1 = rec1
 		self.rec2 = rec2
-		if self.rec1:
+		if self.rec1 and self.rec2:
 			self.rec1 = self.rec1.split(",")
-		if self.rec2:
 			self.rec2 = self.rec2.split(",")
 		elif not self.rec1 and not self.rec2:
 			return True
 		elif not self.rec1 and self.rec2:
+			self.rec = None
 			return False
 		elif not self.rec2 and self.rec1:
+			self.rec = None
 			return False
 		for self.rec in self.rec2:
 			if self.rec not in self.rec1:
@@ -216,8 +217,8 @@ class initialize():
 		self.sql_conn()
 		self.cur = self.conn.cursor()
 		self.cur2 = self.conn.cursor()
-		self.cur.execute("select NOW()")
-		self.tsc  = self.cur.fetchone()
+	#	self.cur.execute("select NOW()")
+	#	self.tsc  = self.cur.fetchone()
 		self.cur.execute("select qname, A, NS, MX, TXT, SOA, dst_ns from baseline")
 		# use cursor as iterator
 		for self.row in self.cur:
@@ -253,7 +254,7 @@ class initialize():
 [*] Latest Record: SOA %s baseline: SOA %s
 [*] Time_stamp: %s\r\n\r\n """ % (self.rec, str(self.qname), self.dst_ns, str(self.A_latest), str(self.A), str(self.NS_latest), str(self.NS), str(self.MX_latest), str(self.MX), str(self.TXT_latest), str(self.TXT), str(self.SOA_latest), str(self.SOA), str(self.tsc[0]))
 				print self.msg
-				self.send_email(self.msg)
+			#	self.send_email(self.msg)
 
 		self.conn.close()
 		self.cur.close()
