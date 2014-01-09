@@ -179,7 +179,6 @@ class initialize():
 		self.rec2 = rec2
 		if self.rec1 and self.rec2:
 			self.rec1 = self.rec1.split(",")
-			#if "," in self.rec2:
 			self.rec2 = self.rec2.split(",")
 		elif not self.rec1 and not self.rec2:
 			return True
@@ -217,68 +216,33 @@ class initialize():
 		self.sql_conn()
 		self.cur = self.conn.cursor()
 		self.cur2 = self.conn.cursor()
-		self.cur3 = self.conn.cursor()
 	#	self.cur.execute("select NOW()")
 	#	self.tsc  = self.cur.fetchone()
 		self.cur.execute("select qname, A, NS, MX, TXT, SOA, dst_ns from baseline")
 		# use cursor as iterator
 		for self.row in self.cur:
 			self.qname, self.A, self.NS, self.MX, self.TXT, self.SOA, self.dst_ns = self.row
-			self.cur2.execute("select max(time_stamp) from latest_update where qname=%s and dst_ns=%s", (self.qname,self.dst_ns))
-			self.tsc = self.cur2.fetchone()
+			self.cur.execute("select max(time_stamp) from latest_update where qname=%s and dst_ns=%s", (self.qname,self.dst_ns))
+			self.tsc = self.cur.fetchone()
         		self.cur2.execute("select qname, A, NS, MX, TXT, SOA, dst_ns from latest_update where qname=%s and dst_ns=%s and time_stamp=%s", (self.qname,self.dst_ns,self.tsc[0]))
 			self.row_latest = self.cur2.fetchone()
 			#for self.row_latest in self.cur2:
 			self.qname_latest, self.A_latest, self.NS_latest, self.MX_latest, self.TXT_latest, self.SOA_latest, self.dst_ns_latest = self.row_latest		
-			self.diff = False
-			print "--------Domain: %s----------NameServer: %s----------\r\n" % (self.qname_latest, self.dst_ns_latest)
-			if not self.reccmp(self.A,self.A_latest):
-
-				self.diff = True
-				self.dtype = 'A'
-				self.diff_rec = self.rec
-				print "[*] A record different than Baseline: %s" % self.rec 
-
-			elif not self.reccmp(self.NS,self.NS_latest):
-
-				self.diff =  True
-				self.dtype = 'NS'
-				self.diff_rec = self.rec
-				print "[*] NS record different than Baseline: %s" % self.rec
-
-			elif not self.reccmp(self.MX, self.MX_latest) :
 		
-				self.diff = True
-				self.dtype = 'MX'
-				self.diff_rec = self.rec
-				print "[*] MX record different than Baseline: %s" % self.rec			
-					
-			elif not self.reccmp(self.TXT,self.TXT_latest):
-			
-				self.diff = True
-				self.dtype = 'TXT'
-				self.diff_rec = self.rec
-				print "[*] TXT record different than Baseline: %s" % self.rec	
+			if self.reccmp(self.A,self.A_latest) and\
+			   self.reccmp(self.NS,self.NS_latest) and\
+			   self.reccmp(self.MX, self.MX_latest) and\
+			   self.reccmp(self.TXT,self.TXT_latest) and\
+			   self.reccmp(self.SOA,self.SOA_latest): 				
 
-			elif not self.reccmp(self.SOA,self.SOA_latest): 				
-
-				self.diff = True
-				self.dtype = 'SOA'
-				self.diff_rec = self.rec
-				print "[*] SOA record different than Baseline: %s" % self.rec
-				
-
-			else:
+				print "--------Domain: %s----------NameServer: %s----------\r\n" % (self.qname_latest, self.dst_ns_latest)
 				print "[*] Server Address is in baseline: %s" % self.A_latest
 				print "[*] Name Servers Match Baseline: %s" % self.NS_latest
 				print "[*] MX Records Match Baseline: %s" % self.MX_latest
 				print "[*] TXT Records Match Baseline: %s" % self.TXT_latest
 				print "[*] SOA Record Match Baseline: %s" % self.SOA_latest
 				print "[*] Time Stamp: %s\r\n\r\n" % str(self.tsc[0])
-
-
-			if self.diff:
-
+			else:
 				self.msg = """
 ---------Differnet Entry: %s------Domain: %s-------Name Server: %s 
 [*] Error Matching Record to Baseline
@@ -287,30 +251,13 @@ class initialize():
 [*] Latest Record: MX %s Baseline: MX %s
 [*] Latest Record: TXT %s Baseline: TXT %s
 [*] Latest Record: SOA %s baseline: SOA %s
-[*] Time_stamp: %s\r\n\r\n """ % (self.diff_rec, str(self.qname), self.dst_ns, str(self.A_latest), str(self.A), str(self.NS_latest), str(self.NS), str(self.MX_latest), str(self.MX), str(self.TXT_latest), str(self.TXT), str(self.SOA_latest), str(self.SOA), str(self.tsc[0]))
-				#print self.msg
-				
-				self.done = False
-				self.cur3.execute("select %s,dst_ns from latest_update where qname=%%s and dst_ns=%%s and time_stamp != %%s" % str(self.dtype), (self.qname,self.dst_ns,self.tsc[0]))
-				for self.r in self.cur3:
-					self.check,self.hck = self.r
-					# if this difference was alerted before this means that its valid insert into baseline (hack)
-					if self.reccmp(self.check,self.diff_rec):
-						self.done = True						
-
-				if self.done:			
-					self.cur3.execute("update baseline set %s=case when %s is null then %%s when %s like %%s then %%s else concat_ws(',',%s,%%s) end,time_stamp=now() where qname=%%s and dst_ns=%%s" % (self.dtype, self.dtype, self.dtype, self.dtype), (self.diff_rec, self.diff_rec, self.diff_rec, self.diff_rec, self.qname_latest, self.dst_ns_latest))
-					self.conn.commit()
-					print "[*] Differene already alerted Adding New %s Record to Baseline: %s" % (self.dtype,self.diff_rec)
-				else:								
-					print "Aleeeeeeeeeeeeeeeeeeeeeert!!!!!"		
-					print self.msg
+[*] Time_stamp: %s\r\n\r\n """ % (self.rec, str(self.qname), self.dst_ns, str(self.A_latest), str(self.A), str(self.NS_latest), str(self.NS), str(self.MX_latest), str(self.MX), str(self.TXT_latest), str(self.TXT), str(self.SOA_latest), str(self.SOA), str(self.tsc[0]))
+				print self.msg
 				#self.send_email(self.msg)
-			#self.conn.commit()
+
 		self.conn.close()
 		self.cur.close()
 		self.cur2.close()
-		self.cur3.close()
 
 r = initialize()
 
@@ -325,7 +272,7 @@ p = parser.parse_args()
 if not p.baseline and not p.domain and not p.check and not p.ns and not p.email:
 	
 	r.packet_magic()
-#	r.checking()
+	r.checking()
 
 if p.baseline and not p.domain and not p.check and not p.ns and not p.email:
 

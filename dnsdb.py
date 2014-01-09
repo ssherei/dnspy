@@ -25,7 +25,7 @@ try:
 
 		print "[*] Creating Table emails"
 		cur.execute("drop table if exists emails")
-		cur.execute("create table emails(id int primary key auto_increment, email varchar(100)")
+		cur.execute("create table emails(id int primary key auto_increment, email varchar(100))")
 
 
 	#	print "[*] Creating Table descrepencies
