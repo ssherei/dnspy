@@ -27,10 +27,14 @@ try:
 		cur.execute("drop table if exists emails")
 		cur.execute("create table emails(id int primary key auto_increment, email varchar(100))")
 
+		print "[*] Creating Table Validate"
+		cur.execute("drop table if exists validate")
+		cur.execute("create table validate(id int primary key auto_increment, qname varchar(50), dst_ns int, diff_type varchar(50), diff_rec varchar(1024), time_stamp timestamp)")
+		
 
-	#	print "[*] Creating Table descrepencies
-	#	cur.execute("drop table if exists descrepencies
-	#	cur.execute("create table descrepencies(id int primary key auto_increment, qname int, dst_ns varchar(25), an_rdata varchar(50), an_type varchar(11),time_stamp timestamp, constraint fk_qname_diff foreign key (qname) references watched(id) on update cascade on delete cascade)")
+		print "[*] Creating Table Alert_history"
+		cur.execute("drop table if exists alert_hitory")
+		cur.execute("create table alert_history (id int primary key auto_increment, qname varchar(50), dst_ns int, diff_type varchar(50), diff_rec varchar(1024), time_stamp timestamp)")
 
 except mysql.Error,e:
 	print "Error %d: %s" % (e.args[0],e.args[1])

@@ -298,19 +298,80 @@ class initialize():
 					if self.reccmp(self.check,self.diff_rec):
 						self.done = True						
 
-				if self.done:			
-					self.cur3.execute("update baseline set %s=case when %s is null then %%s when %s like %%s then %%s else concat_ws(',',%s,%%s) end,time_stamp=now() where qname=%%s and dst_ns=%%s" % (self.dtype, self.dtype, self.dtype, self.dtype), (self.diff_rec, self.diff_rec, self.diff_rec, self.diff_rec, self.qname_latest, self.dst_ns_latest))
+				if self.done:	
+
+					self.cur3.execute("insert into validate (qname, dst_ns, diff_type, diff_rec) values (%s,%s,%s,%s)", (self.qname_latest, self.dst_ns_latest, self.dtype, self.diff_rec))
+					#self.cur3.execute("update baseline set %s=case when %s is null then %%s when %s like %%s then %%s else concat_ws(',',%s,%%s) end,time_stamp=now() where qname=%%s and dst_ns=%%s" % (self.dtype, self.dtype, self.dtype, self.dtype), (self.diff_rec, self.diff_rec, self.diff_rec, self.diff_rec, self.qname_latest, self.dst_ns_latest))
 					self.conn.commit()
-					print "[*] Differene already alerted Adding New %s Record to Baseline: %s" % (self.dtype,self.diff_rec)
+					print "[*] Differene already alerted Adding New %s Record to validation table: %s" % (self.dtype,self.diff_rec)
+
 				else:								
+
 					print "Aleeeeeeeeeeeeeeeeeeeeeert!!!!!"		
 					print self.msg
-				#self.send_email(self.msg)
-			#self.conn.commit()
+					#self.send_email(self.msg)
+	
 		self.conn.close()
 		self.cur.close()
 		self.cur2.close()
 		self.cur3.close()
+
+	def validate(self,d=None):
+	
+		self.answer = False
+		self.sql_conn()
+		self.cur = self.conn.cursor()
+	
+		if d:
+			self.d = d
+			self.cur.execute("select id,qname,dst_ns, diff_type, diff_rec from validate where qname = (select id from watched where domain = %s)", self.d)
+			print "[*] Gathering Entries that need validation from database for domain: %s" % self.d
+		else:
+			self.cur.execute("select id,qname,dst_ns,diff_type,diff_rec from validate")
+			print "[*] Gathering Entries that need validation for all domains"
+	
+		if not self.cur.fetchone():
+			print "[*] No Entries Found for specified domain"
+		else:
+			for self.r in self.cur:
+		
+			#if self.cur.fetchone():
+			#	print "[*] No Entries Found for specified domain"
+			#else:
+					
+				self.id_v,self.qname_v,self.dst_ns_v, self.dtype_v, self.diff_rec_v = self.r
+				self.cur.execute("select domain from watched where id = %s", self.qname_v)
+				self.d = self.cur.fetchone()[0]
+				print "[*] Entry for domain %s Different Record %s for Type %s" % (self.d, self.diff_rec_v, self.dtype_v)
+				print "[*] please enter choice [Y]Yes, [N]No"
+				self.question = raw_input("Validate Entry?  ")
+				while not self.answer:
+					if self.question == 'Y':
+							
+						self.cur.execute("update baseline set %s=case when %s is null then %%s when %s like %%s then %%s else concat_ws(',',%s,%%s) end,time_stamp=now() where qname=%%s and dst_ns=%%s" % (self.dtype_v, self.dtype_v, self.dtype_v, self.dtype_v), (self.diff_rec_v, self.diff_rec_v, self.diff_rec_v, self.diff_rec_v, self.qname_v, self.dst_ns_v))
+				
+						self.cur.execute("delete from validate where id = %s", self.id_v)
+						print "[*] Malicious Entry Validated"
+						print "[*] New Entry Added to Baseline."	
+						self.answer = True
+
+					elif self.question == 'N':
+						self.cur.execute("insert into alert_history(qname,dst_ns,diff_type,diff_rec) values (%s,%s,%s,%s)", (self.d, self.dst_ns_v, self.dtype_v, self.diff_rec_v))
+						self.cur.execute("delete from validate where id  = %s", self.id_v)
+						self.answer = True
+						self.msg_v = """
+Maliciouss entry found after validation for:
+[*] Domain: %s
+[*] DNS Server: %s
+[*] Query Type: %s
+[*] Malicious Entry: %s""" % (self.d, self.dst_ns_v, self.dtype_v, self.diff_rec_v)
+						print self.msg_v
+						#self.send_email(self.msg)
+					else:
+						print "[*] Invalid Choicei,Try again"
+			
+					self.conn.commit()
+					self.cur.close()
 
 r = initialize()
 
@@ -320,31 +381,39 @@ parser.add_argument('-d','--domain', help = ' Add domain to domains table')
 parser.add_argument('-n','--ns', help = ' Add Name Server to table')
 parser.add_argument('-c','--check',help = 'Check for any discrepancies in databse',action='store_true')
 parser.add_argument('-e','--email',help = 'Add Email to table')
+parser.add_argument('-v','--validate',help = 'Manual validation of diff records', nargs='?', default = None, const = 'all')
 p = parser.parse_args()
 
-if not p.baseline and not p.domain and not p.check and not p.ns and not p.email:
+if not p.baseline and not p.domain and not p.check and not p.ns and not p.email and not p.validate:
 	
 	r.packet_magic()
 #	r.checking()
 
-if p.baseline and not p.domain and not p.check and not p.ns and not p.email:
+if p.baseline and not p.domain and not p.check and not p.ns and not p.email and not p.validate:
 
 	r.packet_magic(p.baseline)
 
-if p.domain and not p.baseline and not p.check and not p.ns and not p.email:
+if p.domain and not p.baseline and not p.check and not p.ns and not p.email and not p.validate:
 	
 	r.add_domain(p.domain)
 	r.packet_magic(True)
 
-if p.ns and not p.baseline and not p.check and not p.domain and not p.email:
+if p.ns and not p.baseline and not p.check and not p.domain and not p.email and not p.validate:
 
 	r.add_name_server(p.ns)
 	r.packet_magic(True)
 
-if p.check and not p.baseline and not p.domain and not p.ns and not p.email:
+if p.check and not p.baseline and not p.domain and not p.ns and not p.email and not p.validate:
 	
 	r.checking()
 
-if p.email and not p.baseline and not p.check and not p.domain and not p.ns:
+if p.email and not p.baseline and not p.check and not p.domain and not p.ns and not p.validate:
 	
 	r.add_email(p.email)
+
+if p.validate and not  p.baseline and not p.domain and not p.check and not p.ns and not p.email:
+
+	if p.validate == 'all':
+		r.validate()
+	else:
+		r.validate(p.validate)
