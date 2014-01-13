@@ -299,11 +299,16 @@ class initialize():
 						self.done = True						
 
 				if self.done:	
+					
+					self.cur3.execute("select qname,dst_ns,diff_type,diff_rec from validate where qname = %s and dst_ns = %s and diff_type = %s and diff_rec = %s", (self.qname_latest, self.dst_ns, self.dtype, self.diff_rec))
+					print "[*] Differene already alerted Adding New %s Record to validation table: %s" % (self.dtype,self.diff_rec)
+					if self.cur3.fetchone()==None:
 
-					self.cur3.execute("insert into validate (qname, dst_ns, diff_type, diff_rec) values (%s,%s,%s,%s)", (self.qname_latest, self.dst_ns_latest, self.dtype, self.diff_rec))
+						self.cur3.execute("insert into validate (qname, dst_ns, diff_type, diff_rec) values (%s,%s,%s,%s)", (self.qname_latest, self.dst_ns_latest, self.dtype, self.diff_rec))
+					else:
+						print "[*] Item Already in Validation Table"
 					#self.cur3.execute("update baseline set %s=case when %s is null then %%s when %s like %%s then %%s else concat_ws(',',%s,%%s) end,time_stamp=now() where qname=%%s and dst_ns=%%s" % (self.dtype, self.dtype, self.dtype, self.dtype), (self.diff_rec, self.diff_rec, self.diff_rec, self.diff_rec, self.qname_latest, self.dst_ns_latest))
 					self.conn.commit()
-					print "[*] Differene already alerted Adding New %s Record to validation table: %s" % (self.dtype,self.diff_rec)
 
 				else:								
 
