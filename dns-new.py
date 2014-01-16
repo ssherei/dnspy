@@ -18,7 +18,7 @@ class initialize():
 		self.db_user = 'dnsservice'			#db username
 		self.db_pass = 'dnsservice'			#db password
 		self.db = 'dnsservice'					#db 					
-               # sys.stdout = open('/var/log/dns-mon.log','a')
+                sys.stdout = open('/var/log/dns-mon.log','a')
 		pass
 
 	def sql_conn(self):
@@ -291,7 +291,7 @@ class initialize():
 				#print self.msg
 				
 				self.done = False
-				self.cur3.execute("select %s,dst_ns from latest_update where qname=%%s and dst_ns=%%s and time_stamp != %%s" % str(self.dtype), (self.qname,self.dst_ns,self.tsc[0]))
+				self.cur3.execute("select %s,dst_ns from latest_update where qname=%%s and dst_ns=%%s and time_stamp != %%s" % self.dtype, (self.qname,self.dst_ns,self.tsc[0]))
 				for self.r in self.cur3:
 					self.check,self.hck = self.r
 					# if this difference was alerted before this means that its valid insert into baseline (hack)
@@ -304,11 +304,12 @@ class initialize():
 					print "[*] Differene already alerted Adding New %s Record to validation table: %s" % (self.dtype,self.diff_rec)
 					if self.cur3.fetchone()==None:
 
-						self.cur3.execute("insert into validate (qname, dst_ns, diff_type, diff_rec) values (%s,%s,%s,%s)", (self.qname_latest, self.dst_ns_latest, self.dtype, self.diff_rec))
+						self.cur3.execute("insert into validate (qname, dst_ns, diff_type, diff_rec) values (%s,%s,%s,%s)", (self.qname_latest, self.dst_ns_latest, self.dtype, self.diff_rec))				
+						self.conn.commit()
 					else:
 						print "[*] Item Already in Validation Table"
 					#self.cur3.execute("update baseline set %s=case when %s is null then %%s when %s like %%s then %%s else concat_ws(',',%s,%%s) end,time_stamp=now() where qname=%%s and dst_ns=%%s" % (self.dtype, self.dtype, self.dtype, self.dtype), (self.diff_rec, self.diff_rec, self.diff_rec, self.diff_rec, self.qname_latest, self.dst_ns_latest))
-					self.conn.commit()
+					#self.conn.commit()
 
 				else:								
 
