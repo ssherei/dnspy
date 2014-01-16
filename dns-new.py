@@ -314,7 +314,7 @@ class initialize():
 
 					print "Aleeeeeeeeeeeeeeeeeeeeeert!!!!!"		
 					print self.msg
-					#self.send_email(self.msg)
+					self.send_email(self.msg)
 	
 		self.conn.close()
 		self.cur.close()
@@ -371,7 +371,7 @@ Maliciouss entry found after validation for:
 [*] Query Type: %s
 [*] Malicious Entry: %s""" % (self.d, self.dst_ns_v, self.dtype_v, self.diff_rec_v)
 						print self.msg_v
-						#self.send_email(self.msg)
+						self.send_email(self.msg)
 					else:
 						print "[*] Invalid Choicei,Try again"
 			
@@ -392,7 +392,7 @@ p = parser.parse_args()
 if not p.baseline and not p.domain and not p.check and not p.ns and not p.email and not p.validate:
 	
 	r.packet_magic()
-#	r.checking()
+	r.checking()
 
 if p.baseline and not p.domain and not p.check and not p.ns and not p.email and not p.validate:
 
