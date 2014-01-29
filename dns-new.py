@@ -63,7 +63,7 @@ class initialize():
 				elif self.a['typename'] == 'TXT':
 					print "[*] Updating 'TXT' record in table: %s" % self.table
 					self.cur.execute("update %s set TXT=case  when TXT is null then %%s when TXT like %%s then %%s else concat_ws(',',TXT,%%s) end , time_stamp=now() where qname=(select id from watched where domain=%%s) and dst_ns=(select id from name_servers where name_server=%%s)" % self.table, (str(self.a['data']),"%"+str(self.a['data'])+"%",str(self.a['data']),str(self.a['data']),self.ans.args['name'], self.ans.args['server']))	
-			
+
 				elif self.a['typename'] == 'SOA':
                                         print "[*] Updating 'SOA' record in table: %s" % self.table
                                         self.cur.execute("update %s set SOA=case  when SOA is null then %%s when SOA like %%s then %%s else concat_ws(',',SOA,%%s) end , time_stamp=now() where qname=(select id from watched where domain=%%s) and dst_ns=(select id from name_servers where name_server=%%s)" % self.table, (str(self.a['data']),"%"+str(self.a['data'])+"%",str(self.a['data']),str(self.a['data']),self.ans.args['name'], self.ans.args['server']))			
@@ -260,20 +260,19 @@ class initialize():
 				self.diff_rec = self.rec
 				print "[*] TXT record different than Baseline: %s" % self.rec	
 
-			elif not self.reccmp(self.SOA,self.SOA_latest): 				
-
-				self.diff = True
-				self.dtype = 'SOA'
-				self.diff_rec = self.rec
-				print "[*] SOA record different than Baseline: %s" % self.rec
-				
+			#elif not self.reccmp(self.SOA,self.SOA_latest): 				
+			#	self.diff = True
+			#	self.dtype = 'SOA'
+			#	self.diff_rec = self.rec
+			#	print "[*] SOA record different than Baseline: %s" % self.rec
+		
 
 			else:
 				print "[*] Server Address is in baseline: %s" % self.A_latest
 				print "[*] Name Servers Match Baseline: %s" % self.NS_latest
 				print "[*] MX Records Match Baseline: %s" % self.MX_latest
 				print "[*] TXT Records Match Baseline: %s" % self.TXT_latest
-				print "[*] SOA Record Match Baseline: %s" % self.SOA_latest
+				#print "[*] SOA Record Match Baseline: %s" % self.SOA_latest
 				print "[*] Time Stamp: %s\r\n\r\n" % str(self.tsc[0])
 
 
@@ -286,8 +285,7 @@ class initialize():
 [*] Latest Record: NS %s Baseline: NS %s
 [*] Latest Record: MX %s Baseline: MX %s
 [*] Latest Record: TXT %s Baseline: TXT %s
-[*] Latest Record: SOA %s baseline: SOA %s
-[*] Time_stamp: %s\r\n\r\n """ % (self.diff_rec, str(self.qname), self.dst_ns, str(self.A_latest), str(self.A), str(self.NS_latest), str(self.NS), str(self.MX_latest), str(self.MX), str(self.TXT_latest), str(self.TXT), str(self.SOA_latest), str(self.SOA), str(self.tsc[0]))
+[*] Time_stamp: %s\r\n\r\n """ % (self.diff_rec, str(self.qname), self.dst_ns, str(self.A_latest), str(self.A), str(self.NS_latest), str(self.NS), str(self.MX_latest), str(self.MX), str(self.TXT_latest), str(self.TXT), str(self.tsc[0]))
 				#print self.msg
 				
 				self.done = False
